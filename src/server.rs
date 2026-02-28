@@ -43,11 +43,11 @@ async fn process(stream: TcpStream, store: Store) {
                     .unwrap_or_else(|e| Frame::Error(format!("ERR {:?}", e)));
 
                 if connection.write_frame(&response).await.is_err() {
-                    break; // Can't write? Client is gone.
+                    break;
                 }
             }
             Err(Error::ConnectionClosed) => {
-                // Client disconnected normally (e.g., closed the terminal)
+                // Client disconnected normally
                 break;
             }
             Err(e) => {

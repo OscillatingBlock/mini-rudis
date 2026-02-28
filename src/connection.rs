@@ -45,7 +45,7 @@ impl Connection {
         let prefix = match self.stream.read_u8().await {
             Ok(p) => p,
             Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                return Err(Error::ConnectionClosed); // Add this to your Error enum!
+                return Err(Error::ConnectionClosed);
             }
             Err(e) => return Err(e.into()),
         };
@@ -86,7 +86,7 @@ impl Connection {
         let mut data = vec![0; len as usize];
         self.stream.read_exact(&mut data).await?;
 
-        //after reading the line remove the remaining \r\n
+        //for after reading the line remove the remaining \r\n
         let mut len = String::new();
         self.stream.read_line(&mut len).await?;
 
@@ -108,9 +108,10 @@ impl Connection {
         let mut results: Vec<Frame> = Vec::with_capacity(count as usize);
 
         for _ in 0..count {
+            //shows recursion error
             // let frame = self.read_frame().await?;
 
-            // Create the future, box it, and pin it to the heap
+            //to fix Create the future, box it, and pin it to the heap
             let frame = Box::pin(self.read_frame()).await?;
             results.push(frame);
         }
@@ -172,6 +173,7 @@ impl Connection {
                 self.stream.write_all(b"\r\n").await?;
 
                 for item in array {
+                    //use the pin method for recursion error fix
                     Box::pin(self.write_frame(item)).await?;
                 }
             }
