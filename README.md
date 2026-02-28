@@ -67,7 +67,7 @@ OK
 
 ```
 
-## 🧠 What I Learned
+## What I Learned
 
 * Parsing binary-safe protocols (RESP).
 * Handling **Async Recursion** in Rust using `Box::pin`.
