@@ -24,7 +24,10 @@ pub async fn execute_command(args: Frame, store: Store) -> Result<Frame, Error> 
         "GET" => get(&Frame::Array(frames), &store),
         "HSET" => hset(&Frame::Array(frames), &store),
         "HGET" => hget(&Frame::Array(frames), &store),
+        "DEL" => dump(&Frame::Array(frames), &store),
+        "HDEL" => hdel(&Frame::Array(frames), &store),
         "PING" => Ok(Frame::Simple("PONG".to_string())),
+
         _ => Ok(Frame::Error(format!("ERR unknown command '{}'", cmd_name))),
     }
 }
@@ -62,7 +65,11 @@ fn get(args: &Frame, store: &Store) -> Result<Frame, Error> {
         return Ok(Frame::Error("ERR key must be a string".to_string()));
     };
 
-    Ok(store.get(key).unwrap_or(Frame::Null))
+    match store.get(&key) {
+        Ok(Some(frame)) => Ok(frame),
+        Ok(None) => Ok(Frame::Null),
+        Err(e) => Ok(Frame::Error(format!("{}", e))),
+    }
 }
 
 fn hset(args: &Frame, store: &Store) -> Result<Frame, Error> {
@@ -114,6 +121,48 @@ fn hget(args: &Frame, store: &Store) -> Result<Frame, Error> {
         Ok(None) => Ok(Frame::Null),
         Err(e) => Ok(Frame::Error(format!("{:?}", e))),
     }
+}
+
+fn dump(frame: &Frame, store: &Store) -> Result<Frame, Error> {
+    let Frame::Array(frames) = frame else {
+        return Ok(Frame::Error("ERR Invalid args".to_string()));
+    };
+
+    let mut keys = Vec::new();
+    for key in frames.iter().skip(1) {
+        let Some(key) = to_string(key) else {
+            return Ok(Frame::Error("ERR key must be a string".to_string()));
+        };
+        keys.push(key);
+    }
+    let count = store.dump(keys);
+    Ok(Frame::Integer(count as u64))
+}
+
+fn hdel(frame: &Frame, store: &Store) -> Result<Frame, Error> {
+    let Frame::Array(frames) = frame else {
+        return Ok(Frame::Error("ERR Invalid args".to_string()));
+    };
+    if frames.len() < 3 {
+        return Ok(Frame::Error(
+            "Err wrong number of arguments for 'hget' command".to_string(),
+        ));
+    }
+
+    let Some(key) = to_string(&frames[1]) else {
+        return Ok(Frame::Error("ERR key must be a string".to_string()));
+    };
+
+    let mut fields = Vec::new();
+    for f in frames.iter().skip(2) {
+        if let Some(field_name) = to_string(f) {
+            println!("{}", field_name);
+            fields.push(field_name);
+        }
+    }
+
+    let count = store.hdel(&key, fields);
+    Ok(Frame::Integer(count as u64))
 }
 
 fn to_string(frame: &Frame) -> Option<String> {

@@ -26,11 +26,18 @@ impl Store {
         map.insert(key, value);
     }
 
-    pub fn get(&self, key: String) -> Option<Frame> {
+    pub fn get(&self, key: &str) -> Result<Option<Frame>, Error> {
         let map = self.data.lock().expect("mutex poisoned");
         // We clone here because we can't return a reference to something
         // that is protected by a Mutex (the lock drops when the function ends)
-        map.get(&key).cloned()
+
+        match map.get(key) {
+            Some(Frame::Hash(_)) => Err(Error::Protocol(
+                "WRONGTYPE Operation against a key holding the wrong kind of value".into(),
+            )),
+            Some(frame) => Ok(Some(frame.clone())),
+            None => Ok(None),
+        }
     }
 
     pub fn hset(&self, key: String, field: String, value: Frame) -> Result<(), Error> {
@@ -61,6 +68,32 @@ impl Store {
             // Case 2 (Alternative): Key doesn't exist.
             None => Ok(None),
         }
+    }
+
+    pub fn dump(&self, keys: Vec<String>) -> i64 {
+        let mut map = self.data.lock().expect("mutex poisoned");
+        let mut count = 0;
+
+        for key in keys {
+            if map.remove(&key).is_some() {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn hdel(&self, key: &str, fields: Vec<String>) -> i64 {
+        let mut map = self.data.lock().expect("mutex poisoned");
+        let mut count = 0;
+
+        if let Some(Frame::Hash(inner_map)) = map.get_mut(key) {
+            for field in fields {
+                if inner_map.remove(&field).is_some() {
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 }
 
