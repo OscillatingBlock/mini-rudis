@@ -17,6 +17,8 @@ A lightweight, asynchronous Redis clone built from scratch using **Rust** and **
 | `SET` | Set a string key to a string value. |
 | `HGET` | Get the value of a hash field. |
 | `HSET` | Set the value of a hash field (creates the hash if it doesn't exist). |
+| `DEL` | Delete one or more keys. |
+| `HDEL` | Delete one or more hash fields. |
 | `PING` | Returns `PONG` to test connection liveliness. |
 
 ## Architectural Overview
