@@ -1,6 +1,6 @@
 use crate::{connection::*, store::Store};
 
-pub async fn execute_command(args: Frame, store: Store) -> Result<Frame, Error> {
+pub async fn execute_command(args: &Frame, store: &Store) -> Result<Frame, Error> {
     let Frame::Array(frames) = args else {
         return Ok(Frame::Error(
             "ERR PROTOCOL ERROR: expected array".to_string(),
@@ -20,12 +20,12 @@ pub async fn execute_command(args: Frame, store: Store) -> Result<Frame, Error> 
     };
 
     match cmd_name.to_uppercase().as_str() {
-        "SET" => set(&Frame::Array(frames), &store),
-        "GET" => get(&Frame::Array(frames), &store),
-        "HSET" => hset(&Frame::Array(frames), &store),
-        "HGET" => hget(&Frame::Array(frames), &store),
-        "DEL" => dump(&Frame::Array(frames), &store),
-        "HDEL" => hdel(&Frame::Array(frames), &store),
+        "SET" => set(args, store),
+        "GET" => get(args, store),
+        "HSET" => hset(args, store),
+        "HGET" => hget(args, store),
+        "DEL" => dump(args, store),
+        "HDEL" => hdel(args, store),
         "PING" => Ok(Frame::Simple("PONG".to_string())),
 
         _ => Ok(Frame::Error(format!("ERR unknown command '{}'", cmd_name))),
@@ -43,7 +43,7 @@ fn set(args: &Frame, store: &Store) -> Result<Frame, Error> {
         ));
     }
 
-    let Some(key) = to_string(&frames[1]) else {
+    let Some(key) = to_string(&frames[1]).clone() else {
         return Ok(Frame::Error("ERR key must be a string".to_string()));
     };
 
@@ -82,10 +82,10 @@ fn hset(args: &Frame, store: &Store) -> Result<Frame, Error> {
         ));
     }
 
-    let Some(key) = to_string(&frames[1]) else {
+    let Some(key) = to_string(&frames[1]).clone() else {
         return Ok(Frame::Error("ERR key must be a string".to_string()));
     };
-    let Some(field) = to_string(&frames[2]) else {
+    let Some(field) = to_string(&frames[2]).clone() else {
         return Ok(Frame::Error("ERR field must be a string".to_string()));
     };
 
@@ -165,7 +165,7 @@ fn hdel(frame: &Frame, store: &Store) -> Result<Frame, Error> {
     Ok(Frame::Integer(count as u64))
 }
 
-fn to_string(frame: &Frame) -> Option<String> {
+pub fn to_string(frame: &Frame) -> Option<String> {
     match frame {
         Frame::Simple(s) => Some(s.clone()),
         Frame::Bulk(b) => Some(String::from_utf8_lossy(b).to_string()),

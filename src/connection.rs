@@ -1,10 +1,10 @@
 use bytes::Bytes;
 use std::collections::HashMap;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::net::TcpStream;
+use tokio::io::{AsyncRead, AsyncWrite};
 
-pub struct Connection {
-    stream: BufReader<TcpStream>,
+pub struct Connection<T> {
+    stream: BufReader<T>,
 }
 
 #[derive(Clone)]
@@ -46,10 +46,13 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl Connection {
-    pub fn new(socket: TcpStream) -> Self {
+impl<T> Connection<T>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    pub fn new(stream: T) -> Self {
         Connection {
-            stream: BufReader::new(socket),
+            stream: BufReader::new(stream),
         }
     }
 
